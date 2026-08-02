@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v5.2.0
+        with:
+          go-version: '~1.25'
+
+      # The wire-compatibility tests skip themselves when sops is absent, so
+      # without this step they would silently stop protecting anything.
+      - name: Install the sops CLI
+        run: |
+          curl -sSfL -o /usr/local/bin/sops \
+            https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64
+          chmod +x /usr/local/bin/sops
+          sops --version --disable-version-check
+        env:
+          SOPS_VERSION: 3.13.3
+
+      - name: Running Tests
+        run: |
+          go mod tidy
+          make test
